@@ -1,4 +1,4 @@
 langchain
 openai== 0.28
 streamlit==1.24.1
-dotenv
+python-dotenv
