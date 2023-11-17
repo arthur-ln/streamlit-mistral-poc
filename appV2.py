@@ -72,7 +72,7 @@ def main():
     
     load_dotenv() #specific for development phase
     
-    openai.api_base = os.environ.get('DOMAIN_NAME')  # use the IP or hostname of your instance
+    openai.api_base = os.getenv('DOMAIN_NAME')  # use the IP or hostname of your instance
     openai.api_key = "none"  # vLLM server is not authenticated
 
     # Supervise user input
