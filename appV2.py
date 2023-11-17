@@ -6,6 +6,7 @@ from typing import List, Union
 import streamlit as st
 import openai
 import os
+import chromadb
 #from fastchat.conversation import get_conv_template
 
 def init_page():
@@ -66,6 +67,26 @@ def find_role(message):
 #     print('template', template)
 #     return template
 
+def get_contexts(query: str):
+    # TODO : setup un système d'authentification
+    chroma_client = chromadb.HttpClient(
+        host="57.128.17.86",
+        port="8000",
+    )
+    # TODO : rajouter la fonction d'embedding en argument
+    context_collection = chroma_client.get_or_create_collection("contexts")
+    results = context_collection.query(query_texts=[query], n_results=10)
+    # print(context_collection.peek()["documents"])
+    # print(context_collection.count())
+    return results["documents"]
+
+def add_contexts_to_prompt(user_input, context):
+    #we add some context to the template prompt
+    user_input_prompted = f"<s>[INST] With the following contexts : {context}, answer the following question : {user_input} [/INST] Model answer</s>[INST] Réponds en français de manière claire [/INST]"
+    return user_input_prompted
+    
+
+
 def main():
     init_page()
     init_messages()
@@ -78,9 +99,16 @@ def main():
     # Supervise user input
     if user_input := st.chat_input("Rentrez votre question !"):
         st.session_state.messages.append(HumanMessage(content=user_input))
+        
+        #we get the context from the database
+        
+        contexts = get_contexts(user_input)
+        print('contexts from chromadb \n', contexts)
+        
         with st.spinner("Mistral est en train d'écrire ..."):
-            messages = convert_langchainschema_to_dict(st.session_state.messages)
-            answer = get_answer(messages)
+            #messages = convert_langchainschema_to_dict(st.session_state.messages)
+            user_input_w_context = add_contexts_to_prompt(user_input, contexts)
+            answer = get_answer(user_input_w_context)
         st.session_state.messages.append(AIMessage(content=answer))
 
     # Display chat history

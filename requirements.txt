@@ -2,3 +2,4 @@ langchain
 openai== 0.28
 streamlit==1.24.1
 python-dotenv
+chromadb
