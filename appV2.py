@@ -11,9 +11,9 @@ import chromadb
 
 def init_page():
     st.set_page_config(
-        page_title="Jarvis Chatbot"
+        page_title="Jarvis Chatbot - Demo Mistral X Garde Nationale",
     )
-    st.header("Jarvis Chatbot")
+    st.header("Jarvis - Demo Mistral X Garde Nationale")
     st.sidebar.title("Options")
 
 
