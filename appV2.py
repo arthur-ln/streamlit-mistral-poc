@@ -7,7 +7,10 @@ import streamlit as st
 import openai
 import os
 import chromadb
+from transformers import AutoTokenizer
 #from fastchat.conversation import get_conv_template
+
+
 
 def init_page():
     st.set_page_config(
@@ -20,11 +23,13 @@ def init_page():
 def init_messages():
     clear_button = st.sidebar.button("Effacer la conversation", key="clear")
     if clear_button or "messages" not in st.session_state:
-        st.session_state.messages = [
-            SystemMessage(
-                content="You are a helpful AI assistant. Reply your answer in mardkown format.")
-        ]
-        st.session_state.costs = []
+        print('ok')
+        st.session_state.messages = []
+        # st.session_state.messages = [
+        #     SystemMessage(
+        #         content="You are a helpful AI assistant. Reply your answer in mardkown format.")
+        # ]
+        # st.session_state.costs = []
 
 def get_answer(messages):
     chat_completion = openai.ChatCompletion.create(model="mistralai/Mistral-7B-Instruct-v0.1",
@@ -80,12 +85,20 @@ def get_contexts(query: str):
     # print(context_collection.count())
     return results["documents"]
 
-def add_contexts_to_prompt(user_input, context):
+def add_template(contexts, user_input):
     #we add some context to the template prompt
-    #user_input_prompted = f"<s>[INST] With the following contexts : {context}, answer the following question : {user_input} [/INST] Model answer</s>[INST] Réponds en français de manière claire [/INST]"
-    user_input_prompted = f'<s> [INST] You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question, if is not a question does not concern the context you can answer normally. If you do not know the answer, just say that you do not know. Answer in French.  [/INST] </s> [INST] Question: {user_input} Context: {context} Answer: [/INST]'
-    return user_input_prompted
+    messages = st.session_state.messages
+    messages = convert_langchainschema_to_dict(messages)
+    print('messages', messages)
+    #messages[-1] = {"role": "user", "content": f"With the following contexts : {contexts}, answer the following question in French : {user_input}"}
     
+    #messages[-1] = {"role": "user", "content": f"Answer the following question in French : {user_input}"}
+    # messages[-1] = {"role": "user", "content":f"<s>[INST] With the following contexts : {contexts}, Answer the following question : {user_input} [/INST] Model answer</s>[INST] Réponds en français de manière claire [/INST]"}
+    messages[-1] = {"role": "user", "content":f"<s>Answer the following question : {user_input} [/INST] Model answer</s>[INST] Réponds en français de manière claire"}
+    
+    tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-Instruct-v0.1")
+    user_input_prompted = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+    return user_input_prompted
 
 
 def main():
@@ -102,14 +115,17 @@ def main():
         st.session_state.messages.append(HumanMessage(content=user_input))
         
         #we get the context from the database
-        
         contexts = get_contexts(user_input)[0]
-        print('contexts from chromadb \n', contexts)
+        user_input_w_template = add_template(contexts, user_input)
+        print('messsages with prompting', user_input_w_template)
+        #print('contexts from chromadb \n', contexts)
         
         with st.spinner("Mistral est en train d'écrire ..."):
             #messages = convert_langchainschema_to_dict(st.session_state.messages)
-            user_input_w_context = add_contexts_to_prompt(user_input, contexts)
-            answer = get_answer(user_input_w_context)
+            #user_input_w_context = add_contexts_to_prompt(user_input, contexts)
+            
+            #user_input_prompted = add_template()            
+            answer = get_answer(user_input_w_template)
         st.session_state.messages.append(AIMessage(content=answer))
 
     # Display chat history
